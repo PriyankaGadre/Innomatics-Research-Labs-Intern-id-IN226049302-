@@ -1,0 +1,99 @@
+# NAME: PRIYANKA GADRE
+
+# Intern ID: IN226049302
+
+
+# TASK 3: CHATBOT USING HUGGING FACE TRANSFORMERS
+
+# 1. Import Libraries
+
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
+
+
+# 2. Load Pretrained Model & Tokenizer
+
+model_name = "microsoft/DialoGPT-medium"
+
+print("⏳ Loading model...")
+
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
+
+print("✅ Model loaded successfully!\n")
+
+# 3. Smart Knowledge Booster
+
+def smart_response(user_input):
+    user_input = user_input.lower()
+
+    if "machine learning" in user_input:
+        return "Machine Learning is a subset of Artificial Intelligence that allows systems to learn from data and improve automatically without being explicitly programmed."
+
+    elif "artificial intelligence" in user_input or "ai" in user_input:
+        return "Artificial Intelligence (AI) refers to the simulation of human intelligence in machines that can think, learn, and make decisions."
+
+    elif "python" in user_input:
+        return "Python was created by Guido van Rossum and released in 1991."
+
+    elif "thank" in user_input:
+        return "You're welcome! Feel free to ask more questions."
+
+    return None
+
+# 4. Initialize Chat History
+
+chat_history_ids = None
+
+
+# 5. Start Chatbot
+print("🤖 Chatbot: Hello! I am your AI assistant. How can I help you today?\n")
+
+while True:
+
+    # Take user input
+    user_input = input("👤 You: ")
+
+    # Exit condition
+    if user_input.lower() in ["exit", "quit"]:
+        print("🤖 Chatbot: Goodbye! Have a great day!")
+        break
+
+
+    # Check Smart Response First
+
+    smart_reply = smart_response(user_input)
+
+    if smart_reply:
+        print(f"🤖 Chatbot: {smart_reply}\n")
+        continue
+
+    # Encode Input
+    new_input_ids = tokenizer.encode(user_input + tokenizer.eos_token, return_tensors='pt')
+
+    # Maintain limited chat history (prevents overflow)
+    if chat_history_ids is not None:
+        bot_input_ids = torch.cat([chat_history_ids, new_input_ids], dim=-1)
+        bot_input_ids = bot_input_ids[:, -1000:]
+    else:
+        bot_input_ids = new_input_ids
+
+    # Generate Response
+
+    chat_history_ids = model.generate(
+        bot_input_ids,
+        max_length=1000,
+        pad_token_id=tokenizer.eos_token_id,
+        do_sample=True,
+        top_k=50,
+        top_p=0.95,
+        temperature=0.75
+    )
+
+    # Decode response
+    bot_response = tokenizer.decode(
+        chat_history_ids[:, bot_input_ids.shape[-1]:][0],
+        skip_special_tokens=True
+    )
+
+    print(f"🤖 Chatbot: {bot_response}\n")
